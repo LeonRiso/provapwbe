@@ -1,0 +1,80 @@
+const db = require("../dao/connect")
+
+class VendedorModel {
+  constructor() {
+    this.db = db;
+  }
+
+  getVendedorInfo(id) {
+    return new Promise((resolve, reject) => {
+      const query = `
+        SELECT 
+          vendedores.nome, 
+          vendedores.matricula, 
+          SUM(vendas.quantidade * produtos.valor) AS total_vendas,
+          SUM(vendas.quantidade * produtos.valor * 0.05) AS comissao
+        FROM 
+          vendedores
+          INNER JOIN vendas ON vendedores.id = vendas.vendedorid
+          INNER JOIN produtos ON vendas.produtoid = produtos.id
+        WHERE 
+          vendedores.id = ?
+        GROUP BY 
+          vendedores.id
+      `;
+      this.db.query(query, [id], (err, result) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(result[0]);
+        }
+      });
+    });
+  }
+
+  getAllSalesByVendedor(id) {
+    return new Promise((resolve, reject) => {
+      const query = `
+        SELECT 
+          vendas.vendata,
+          produtos.nome AS produto_nome, 
+          vendas.quantidade AS quantidade_vendida,
+          vendedores.nome AS vendedor_nome
+        FROM 
+          vendas
+          INNER JOIN produtos ON vendas.produtoid = produtos.id
+          INNER JOIN vendedores ON vendas.vendedorid = vendedores.id
+        WHERE 
+          vendedores.id = ?
+      `;
+      this.db.query(query, [id], (err, result) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(result);
+        }
+      })
+    })
+  }
+
+  getTotalSales() {
+    return new Promise((resolve, reject) => {
+        const query = `
+          SELECT SUM(quantidade * valor) AS total
+          FROM vendas
+          INNER JOIN produtos ON vendas.produtoid = produtos.id
+        `;
+        this.db.query(query, (err, result) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(result[0].total);
+        }
+      });
+    });
+  }
+
+
+}
+
+module.exports = VendedorModel;
